@@ -60,7 +60,7 @@ public class SlashCommand extends Event {
                     InteractionHook hook = event.getHook();
                     MessageEmbed embed = new EmbedBuilder()
                             .setTitle("**Pet shop**")
-                            .setDescription("_You don't have any empty pet slots left\nYou can have upto 2 pets..._")
+                            .setDescription("_You don't have any empty pet slots left\nYou can have upto %d pets..._".formatted(database.getConfig().getPetLimit()))
                             .build();
                     hook.editOriginalEmbeds(embed).queue();
                 } else {

@@ -59,7 +59,7 @@ public class ButtonPress extends Event {
                 if (count >= database.getConfig().getPetLimit()) {
                     MessageEmbed embed = new EmbedBuilder()
                             .setColor(Color.RED)
-                            .setDescription("_You don't have any empty pet slots left\nYou can have upto 2 pets..._")
+                            .setDescription("_You don't have any empty pet slots left\nYou can have upto %d pets..._".formatted(database.getConfig().getPetLimit()))
                             .build();
                     event.getHook().editOriginalEmbeds(embed).queue();
                     return;

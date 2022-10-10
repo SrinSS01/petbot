@@ -41,7 +41,7 @@ public class Pet implements Serializable {
     }
 
     protected static int generateXP() {
-        return RANDOM.nextInt(10);
+        return RANDOM.nextInt(1, 10);
     }
 
     /**

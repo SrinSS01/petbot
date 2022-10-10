@@ -46,7 +46,7 @@ public class User implements Serializable {
     }
 
     private static int generateXP() {
-        return RANDOM.nextInt(10);
+        return RANDOM.nextInt(1, 10);
     }
 
     public void levelUp() {

@@ -1,4 +1,4 @@
-${AnsiBackground.DEFAULT}${AnsiColor.BLUE}
+${AnsiBackground.DEFAULT}${AnsiColor.BRIGHT_YELLOW}
 d8888b. d88888b d888888b   d8888b.  .d88b.  d888888b
 88  `8D 88'     `~~88~~'   88  `8D .8P  Y8. `~~88~~'
 88oodD' 88ooooo    88      88oooY' 88    88    88

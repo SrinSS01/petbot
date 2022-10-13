@@ -1,14 +1,18 @@
 package me.srin.petbot.utils;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.Setter;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.stereotype.Component;
 
-@AllArgsConstructor
+@Component
+@EnableConfigurationProperties
+@ConfigurationProperties("bot")
+@Getter @Setter
 public class Config {
-    @Getter
-    private long trainingSeconds;
-    @Getter
-    private String[] species;
-    @Getter
+    private String token;
+    private String[] petSpecies;
+    private long trainingCooldownInSeconds;
     private int petLimit;
 }

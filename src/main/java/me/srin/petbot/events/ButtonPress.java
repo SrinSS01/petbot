@@ -166,7 +166,7 @@ public class ButtonPress extends Event {
                 Map<Pet, Long> map = Database.LAST_TIME_CACHE.get(member);
                 long lastTime = map == null? 0L: Objects.requireNonNullElse(map.get(pet), 0L);
                 long dTime = (System.currentTimeMillis() / 1000) - lastTime;
-                long trainingSeconds = database.getConfig().getTrainingSeconds();
+                long trainingSeconds = database.getConfig().getTrainingCooldownInSeconds();
                 if (dTime <= trainingSeconds) {
                     event.replyFormat(
                             "Oh your pet is still training, wait until you can use this command again at <t:%d:T>",

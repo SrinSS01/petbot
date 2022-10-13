@@ -6,20 +6,19 @@ import lombok.Setter;
 import me.srin.petbot.utils.Config;
 import net.dv8tion.jda.api.entities.Member;
 import org.springframework.data.util.Pair;
+import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
 
+@Component
 @AllArgsConstructor
+@Getter @Setter
 public class Database {
-    @Getter
-    private UserRepo userRepo;
-    @Getter
-    private PetRepo petRepo;
-    @Getter
-    private PetUserRDBMSRepository petUserRDBMSRepository;
-    @Getter @Setter
-    private Config config;
+    private final UserRepo userRepo;
+    private final PetRepo petRepo;
+    private final PetUserRDBMSRepository petUserRDBMSRepository;
+    private final Config config;
     public static final Map<Long, User> USER_SELECTIONS = new HashMap<>();
     public static final Map<Long, Map<Long, Pair<Pet, net.dv8tion.jda.api.entities.User>>> PET_CACHE = new HashMap<>();
     public static final Map<Long, User> SELECTED_PET_CACHE = new HashMap<>();

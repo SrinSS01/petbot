@@ -15,21 +15,24 @@ public class PetbotApplication {
         File config = new File("config");
         if (!config.exists()) {
             boolean result = config.mkdirs();
-            File properties = new File("config/application.properties");
+            File properties = new File("config/application.yml");
             if (result) {
                 LOGGER.info("Created config directory");
                 try (FileWriter writer = new FileWriter(properties)) {
                     writer.write("""
-                            bot-token=token
-                            database-host=localhost:3306
-                            database-name=database
-                            database-user=user
-                            database-password=password
-                            training-cooldown-in-seconds=720
-                            pet-limit=2
+                            bot:
+                              token: token
+                              training-cooldown-in-seconds: 720
+                              pet-species: ["cat","dog","parrot","hamster","snake","dragon","fox","deer","squirrel","beast"]
+                              pet-limit: 2
+                            database:
+                              host: "localhost:3306"
+                              name: "name"
+                              user: "user"
+                              password: "password"
                             """);
                     writer.flush();
-                    LOGGER.info("Created application.properties file");
+                    LOGGER.info("Created application.yml file");
                 }
             } else {
                 LOGGER.error("Failed to create config directory");

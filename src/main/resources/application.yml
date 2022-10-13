@@ -1,0 +1,27 @@
+bot:
+  token: "token"
+  pet-species: [cat,dog,parrot,hamster,snake,dragon,fox,deer,squirrel,beast]
+  pet-limit: 2
+  training-cooldown-in-seconds: 720
+database:
+  host: "localhost:3306"
+  name: "database"
+  user: "user"
+  password: "password"
+spring:
+  datasource:
+    hikari:
+      jdbc-url: "jdbc:mysql://${database.host}/${database.name}"
+      username: "${database.user}"
+      password: "${database.password}"
+      driver-class-name: "com.mysql.cj.jdbc.Driver"
+      auto-commit: true
+      connection-test-query: select 1
+      maximum-pool-size: 20
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+    hibernate:
+      ddl-auto: update
+    show-sql: true

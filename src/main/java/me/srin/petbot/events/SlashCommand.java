@@ -27,7 +27,7 @@ public class SlashCommand extends Event {
 
     private SlashCommand(Database database) {
         super(database);
-        for (String type : database.getConfig().getSpecies()) {
+        for (String type : database.getConfig().getPetSpecies()) {
             SELECTION_BUILDER.addOption(type, type);
         }
     }
@@ -204,7 +204,7 @@ public class SlashCommand extends Event {
                     Map<Pet, Long> map = Database.LAST_TIME_CACHE.get(member);
                     Long lastTime = map == null? 0L: Objects.requireNonNullElse(map.get(pet), 0L);
                     long dTime = System.currentTimeMillis() - lastTime;
-                    if (dTime <= database.getConfig().getTrainingSeconds()) {
+                    if (dTime <= database.getConfig().getTrainingCooldownInSeconds()) {
                         event.replyFormat("Oh your pet is still training, wait for <t:%d:T> until you can use this command again", dTime).setEphemeral(true).queue();
                         return;
                     }

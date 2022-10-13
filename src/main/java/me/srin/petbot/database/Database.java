@@ -6,12 +6,10 @@ import lombok.Setter;
 import me.srin.petbot.utils.Config;
 import net.dv8tion.jda.api.entities.Member;
 import org.springframework.data.util.Pair;
-import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
 
-@Component
 @AllArgsConstructor
 @Getter @Setter
 public class Database {

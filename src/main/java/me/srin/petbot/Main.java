@@ -4,7 +4,11 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 import me.srin.petbot.database.Database;
+import me.srin.petbot.database.PetRepo;
+import me.srin.petbot.database.PetUserRDBMSRepository;
+import me.srin.petbot.database.UserRepo;
 import me.srin.petbot.events.*;
+import me.srin.petbot.utils.Config;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.OnlineStatus;
@@ -25,10 +29,16 @@ import static net.dv8tion.jda.api.requests.GatewayIntent.*;
 @Getter @Setter
 public class Main implements CommandLineRunner {
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
-    private final Database database;
+    private final UserRepo userRepo;
+    private final PetRepo petRepo;
+    private final PetUserRDBMSRepository petUserRDBMSRepository;
+    private final Config config;
 
     @Override
     public void run(String... args) {
+        Database database = Database.create(
+            userRepo, petRepo, petUserRDBMSRepository, config
+        );
         String token = database.getConfig().getToken();
         LOGGER.info("Started bot with token: {}", token);
         JDA bot = JDABuilder.createDefault(token).enableIntents(

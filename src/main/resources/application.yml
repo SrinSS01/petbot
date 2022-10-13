@@ -11,13 +11,13 @@ database:
 spring:
   datasource:
     hikari:
-      jdbc-url: "jdbc:mysql://${database.host}/${database.name}"
       username: "${database.user}"
       password: "${database.password}"
       driver-class-name: "com.mysql.cj.jdbc.Driver"
       auto-commit: true
       connection-test-query: select 1
       maximum-pool-size: 20
+    url: "jdbc:mysql://${database.host}/${database.name}"
   jpa:
     properties:
       hibernate:

@@ -255,31 +255,33 @@ public class SlashCommand extends Event {
                 }
                 SelectMenu selectionMenu = builder.build();
                 Pet pet = pets.get(0);
-                var petStats = Utils.getPetStats(pet, database.getConfig().getStatusBackground());
+                var petStats = Utils.getPetStats(pet).build();
                 if (!isModerator) {
-                    event.getHook().editOriginal(petStats).setComponents(
+                    event.getHook().editOriginalEmbeds(petStats).setComponents(
                             ActionRow.of(selectionMenu),
                             ActionRow.of(
                                     Button.primary("train-pet", "Train")
                             )
                     ).queue(message -> {
-                        Database.MEMBER_PET_STATUS_MAP.put(message.getIdLong(), petMap);
+                        Database.MESSAGE_PET_STATUS_MAP_SELECTED.put(message.getIdLong(), pet);
+                        Database.MESSAGE_PET_STATUS_MAP.put(message.getIdLong(), petMap);
                         message.editMessageComponents(
                                 ActionRow.of(selectionMenu.asDisabled()),
                                 ActionRow.of(
                                         Button.primary("train-pet", "Train").asDisabled()
                                 )
-                        ).queueAfter(10, TimeUnit.MINUTES, m -> Database.MEMBER_PET_STATUS_MAP.remove(m.getIdLong()));
+                        ).queueAfter(10, TimeUnit.MINUTES, m -> Database.MESSAGE_PET_STATUS_MAP.remove(m.getIdLong()));
                     });
                 } else {
                     event.getHook()
-                            .editOriginal(petStats)
+                            .editOriginalEmbeds(petStats)
                             .setComponents(ActionRow.of(selectionMenu))
                             .queue(message -> {
-                                Database.MEMBER_PET_STATUS_MAP.put(message.getIdLong(), petMap);
+                                Database.MESSAGE_PET_STATUS_MAP_SELECTED.put(message.getIdLong(), pet);
+                                Database.MESSAGE_PET_STATUS_MAP.put(message.getIdLong(), petMap);
                                 message.editMessageComponents(
                                         ActionRow.of(selectionMenu.asDisabled())
-                                ).queueAfter(10, TimeUnit.MINUTES, m -> Database.MEMBER_PET_STATUS_MAP.remove(m.getIdLong()));
+                                ).queueAfter(10, TimeUnit.MINUTES, m -> Database.MESSAGE_PET_STATUS_MAP.remove(m.getIdLong()));
                             });
                 }
             }

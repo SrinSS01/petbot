@@ -45,13 +45,14 @@ public class SelectionMenu extends Event {
                 pet.setType(selected);
             }
             case "pet-stats" -> {
-                Map<Long, Pet> petMap = Database.MEMBER_PET_STATUS_MAP.get(event.getMessageIdLong());
+                Map<Long, Pet> petMap = Database.MESSAGE_PET_STATUS_MAP.get(event.getMessageIdLong());
                 if (petMap == null) {
                     return;
                 }
                 Pet pet = petMap.get(Long.parseLong(selectOption.getValue()));
-                var petStats = Utils.getPetStats(pet, database.getConfig().getStatusBackground());
-                event.editMessage(petStats).queue();
+                Database.MESSAGE_PET_STATUS_MAP_SELECTED.put(event.getMessageIdLong(), pet);
+                var petStats = Utils.getPetStats(pet);
+                event.editMessageEmbeds(petStats.build()).queue();
             }
         }
     }

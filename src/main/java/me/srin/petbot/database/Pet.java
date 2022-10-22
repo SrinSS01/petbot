@@ -28,6 +28,8 @@ public class Pet implements Serializable {
 
     @Transient
     protected static final Random RANDOM = new Random();
+    @Transient
+    private long cooldown = 0;
 
     public static Pet create() {
         return new Pet();

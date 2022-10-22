@@ -18,7 +18,8 @@ public class Database {
     private final PetUserRDBMSRepository petUserRDBMSRepository;
     private final Config config;
     public static final Map<Member, PetLab> MEMBER_PET_LAB_MAP = new HashMap<>();
-    public static final Map<Long, Map<Long, Pet>> MEMBER_PET_STATUS_MAP = new HashMap<>();
+    public static final Map<Long, Map<Long, Pet>> MESSAGE_PET_STATUS_MAP = new HashMap<>();
+    public static final Map<Long, Pet> MESSAGE_PET_STATUS_MAP_SELECTED = new HashMap<>();
 
 
 //    public static final Map<Long, User> USER_SELECTIONS = new HashMap<>();

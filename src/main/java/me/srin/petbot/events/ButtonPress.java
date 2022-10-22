@@ -19,6 +19,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.Date;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class ButtonPress extends Event {
@@ -113,7 +114,12 @@ public class ButtonPress extends Event {
                 event.replyModal(modal).queue();
             }
             case "train-pet" -> {
+                Pet pet = Database.MESSAGE_PET_STATUS_MAP_SELECTED.get(event.getMessageIdLong());
+                long cooldown = pet.getCooldown();
+                long currentTime = System.currentTimeMillis();
+                if ((currentTime - cooldown) <= database.getConfig().getTrainingCooldownInSeconds()) {
 
+                }
             }
         }
     }

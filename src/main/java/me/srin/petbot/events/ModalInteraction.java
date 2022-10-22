@@ -2,8 +2,8 @@ package me.srin.petbot.events;
 
 import me.srin.petbot.database.Database;
 import me.srin.petbot.database.Pet;
-import me.srin.petbot.database.User;
 import me.srin.petbot.utils.Utils;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.interactions.modals.ModalMapping;
@@ -25,14 +25,12 @@ public class ModalInteraction extends Event {
             event.deferEdit().queue();
             return;
         }
-        long messageId = message.getIdLong();
-        User user = Database.SELECTED_PET_CACHE.get(messageId);
-        net.dv8tion.jda.api.entities.User eventUser = event.getUser();
-        if (user.getUserId() != eventUser.getIdLong()) {
-            event.deferEdit().queue();
+        Member member = event.getMember();
+        if (member == null) {
             return;
         }
-        Pet pet = user.getPet();
+        Database.PetLab petLab = Database.MEMBER_PET_LAB_MAP.get(member);
+        Pet pet = petLab.getPet();
         switch (event.getModalId()) {
             case "change-name" -> {
                 ModalMapping name = event.getValue("name");
@@ -57,7 +55,6 @@ public class ModalInteraction extends Event {
                 pet.setPfp(pfpAsString);
             }
         }
-        event.editMessageEmbeds(Utils.getPetStatsEmbed(pet, eventUser)).queue();
-        database.getPetRepo().save(pet);
+        event.editMessageEmbeds(Utils.getPetDetails(pet).build()).queue();
     }
 }

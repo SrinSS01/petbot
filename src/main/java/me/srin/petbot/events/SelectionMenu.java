@@ -4,11 +4,11 @@ import me.srin.petbot.database.Database;
 import me.srin.petbot.database.Pet;
 import me.srin.petbot.utils.Utils;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.MessageEmbed;
-import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.events.interaction.component.SelectMenuInteractionEvent;
 import org.jetbrains.annotations.NotNull;
-import org.springframework.data.util.Pair;
+
+import java.util.Map;
 
 public class SelectionMenu extends Event {
 
@@ -22,8 +22,6 @@ public class SelectionMenu extends Event {
 
     @Override
     public void onSelectMenuInteraction(@NotNull SelectMenuInteractionEvent event) {
-        event.deferEdit().queue();
-        User user = event.getUser();
         Guild guild = event.getGuild();
         if (guild == null) {
             return;
@@ -31,30 +29,29 @@ public class SelectionMenu extends Event {
         String id = event.getComponentId();
         var selectOption = event.getSelectedOptions().get(0);
         String selected = selectOption.getLabel();
+        Member member = event.getMember();
+        if (member == null) {
+            event.deferEdit().queue();
+            return;
+        }
         switch (id) {
-            case "pet-selection" -> {
-                long userIdLong = user.getIdLong();
-                if (!Database.USER_SELECTIONS.containsKey(userIdLong)) {
-                    me.srin.petbot.database.User usr = me.srin.petbot.database.User.create();
-                    Database.USER_SELECTIONS.put(userIdLong, usr);
-                }
-                me.srin.petbot.database.User usr = Database.USER_SELECTIONS.get(userIdLong);
-                Pet pet = Pet.create();
-                pet.setName(user.getName() + "'s " + selected);
-                pet.setType(selected);
-                usr.setPet(pet);
-            }
-            case "pet-profile" -> {
-                long messageId = event.getMessageIdLong();
-                var longPairMap = Database.PET_CACHE.get(messageId);
-                if (longPairMap == null) {
-                    event.deferEdit().queue();
+            case "create-pet-selection" -> {
+                Database.PetLab petLab = Database.MEMBER_PET_LAB_MAP.get(member);
+                event.deferEdit().queue();
+                if (petLab == null) {
                     return;
                 }
-                Pair<Pet, User> petUserPair = longPairMap.get(Long.parseLong(selectOption.getValue()));
-                Database.SELECTED_PET_CACHE.get(messageId).setPet(petUserPair.getFirst());
-                MessageEmbed embed = Utils.getPetStatsEmbed(petUserPair.getFirst(), petUserPair.getSecond());
-                event.getHook().editOriginalEmbeds(embed).queue();
+                Pet pet = petLab.getPet();
+                pet.setType(selected);
+            }
+            case "pet-stats" -> {
+                Map<Long, Pet> petMap = Database.MEMBER_PET_STATUS_MAP.get(event.getMessageIdLong());
+                if (petMap == null) {
+                    return;
+                }
+                Pet pet = petMap.get(Long.parseLong(selectOption.getValue()));
+                var petStats = Utils.getPetStats(pet, database.getConfig().getStatusBackground());
+                event.editMessage(petStats).queue();
             }
         }
     }

@@ -12,14 +12,11 @@ import java.io.Serializable;
 @IdClass(PetUserRDBMS.ID.class)
 @Table(name = "up_db")
 @NoArgsConstructor
+@Getter @Setter
 public class PetUserRDBMS implements Serializable {
-    @Getter @Setter @Id
-    private long userId;
-    @Getter @Setter @Id
-    private long guildId;
-
-    @Getter @Setter @Id
-    private long petId;
+    @Id private long userId;
+    @Id private long guildId;
+    @Id private long petId;
 
     public static PetUserRDBMS create() {
         return new PetUserRDBMS();
@@ -28,12 +25,10 @@ public class PetUserRDBMS implements Serializable {
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
     @EqualsAndHashCode(onlyExplicitlyIncluded = true)
+    @Getter @Setter
     public static class ID implements Serializable {
-        @Getter @Setter
         private long userId;
-        @Getter @Setter
         private long guildId;
-        @Getter @Setter
         private long petId;
 
         public static ID of(long user_id, long guild_id, long petId) {

@@ -2,7 +2,6 @@ package me.srin.petbot.events;
 
 import me.srin.petbot.database.Database;
 import me.srin.petbot.database.Pet;
-import me.srin.petbot.database.PetUserRDBMS;
 import me.srin.petbot.utils.Utils;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
@@ -16,11 +15,10 @@ import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import java.awt.*;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.time.Instant;
+import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 public class ButtonPress extends Event {
@@ -40,89 +38,61 @@ public class ButtonPress extends Event {
         if (guild == null) {
             return;
         }
-        long guildId = guild.getIdLong();
+//        long guildId = guild.getIdLong();
         Button button = event.getButton();
         String id = button.getId();
         if (id == null) {
             return;
         }
         User user = event.getUser();
-        long userId = user.getIdLong();
+//        long userId = user.getIdLong();
+        final Member member = event.getMember();
+        if (member == null) {
+            event.deferEdit().queue();
+            return;
+        }
         switch (id) {
-            case "buy" -> {
-                if (!Database.USER_SELECTIONS.containsKey(userId)) {
-                    event.deferEdit().queue();
-                    return;
-                }
-                event.deferReply().setEphemeral(true).queue();
-                var count = database.getPetUserRDBMSRepository().countByUserIdAndGuildId(userId, guildId);
-                if (count >= database.getConfig().getPetLimit()) {
-                    MessageEmbed embed = new EmbedBuilder()
-                            .setColor(Color.RED)
-                            .setDescription("_You don't have any empty pet slots left\nYou can have upto %d pets..._".formatted(database.getConfig().getPetLimit()))
-                            .build();
-                    event.getHook().editOriginalEmbeds(embed).queue();
-                    return;
-                }
-                var pet_id = database.insertNewPet(userId);
-                database.addPetToOwner(userId, guildId, pet_id);
-                Pet pet = database.getPet(userId);
-                MessageEmbed embed = new EmbedBuilder()
-                        .setTitle("**you bought**").setDescription("a " + pet.getType()).build();
-                event.getHook().editOriginalEmbeds(embed).queue();
-            }
-            case "disown" -> {
-                long usrId = Database.SELECTED_PET_CACHE.get(event.getMessageIdLong()).getUserId();
-                if (usrId != userId) {
-                    event.deferEdit().queue();
-                    return;
-                }
-                event.replyEmbeds(
-                                new EmbedBuilder()
-                                        .setDescription("Do you want to disown this pet?")
-                                        .setFooter(event.getMessageId(), user.getAvatarUrl())
-                                        .setColor(Color.RED).build()
+            case "select" -> {
+                Database.PetLab petLab = getPetLab(event, member);
+                if (petLab == null) return;
+                Pet pet = petLab.getPet();
+                EmbedBuilder petStatsEmbed = Utils.getPetDetails(pet);
+                petStatsEmbed.setFooter(Date.from(Instant.now()).toString(), user.getAvatarUrl());
+                MessageEmbed embed = petStatsEmbed.build();
+                event.editMessageEmbeds(embed)
+                        .setComponents(
+                                ActionRow.of(
+                                        Button.primary("change-name", "Change name"),
+                                        Button.primary("set-pfp", "Set pfp"),
+                                        Button.success("save", "Save Changes"),
+                                        Button.danger("remove", "Remove")
+                                )
                         )
-                        .addActionRow(
-                                Button.success("disown-confirm-yes", "Yes"),
-                                Button.danger("disown-confirm-no", "No")
-                        ).setEphemeral(true).queue(hook -> hook.editOriginalComponents(ActionRow.of(
-                                Button.success("disown-confirm-yes", "Yes").asDisabled(),
-                                Button.danger("disown-confirm-no", "No").asDisabled()
-                        )).queueAfter(1, TimeUnit.MINUTES));
+                        .queue(hook -> hook.editOriginalComponents(
+                                ActionRow.of(
+                                        Button.primary("change-name", "Change name").asDisabled(),
+                                        Button.primary("set-pfp", "Set pfp").asDisabled(),
+                                        Button.success("save", "Save Changes").asDisabled(),
+                                        Button.danger("remove", "Remove").asDisabled()
+                                )
+                        ).queueAfter(3, TimeUnit.MINUTES));
+                petLab.getTask().cancel(true);
             }
-            case "disown-confirm-yes" -> {
-                event.deferEdit().queue();
-                long messageId = Long.parseLong(Objects.requireNonNull(Objects.requireNonNull(event.getMessage().getEmbeds().get(0).getFooter()).getText()));
-                me.srin.petbot.database.User usr = Database.SELECTED_PET_CACHE.get(messageId);
-                Pet pet = usr.getPet();
-                long petId = pet.getId();
-                database.getPetUserRDBMSRepository().deleteById(PetUserRDBMS.ID.of(userId, guildId, petId));
-                database.getPetRepo().deleteById(petId);
-                Database.PET_CACHE.get(messageId).remove(petId);
-                event.getHook().editOriginalEmbeds(
-                        new EmbedBuilder()
-                                .setColor(Color.GREEN)
-                                .setDescription("disowned " + pet.getName())
-                                .build()
-                ).setComponents(List.of()).queue();
+            case "remove" -> {
+                if (getPetLab(event, member) == null) return;
+                Database.MEMBER_PET_LAB_MAP.remove(member);
+                event.getMessage().delete().queue();
             }
-            case "disown-confirm-no" -> event.editMessageEmbeds(
-                    new EmbedBuilder()
-                            .setColor(Color.GRAY)
-                            .setDescription("canceled")
-                            .build()
-            ).setComponents(List.of()).queue();
+            case "save" -> {
+                Database.PetLab petLab = getPetLab(event, member);
+                if (petLab == null) return;
+                Pet pet = petLab.getPet();
+                pet = database.getPetRepo().save(pet);
+                event.editMessageEmbeds(Utils.getPetDetails(pet).build()).queue(hook ->
+                        hook.sendMessage("Changes saved").setEphemeral(true).queue());
+            }
             case "change-name" -> {
-                if (!Database.SELECTED_PET_CACHE.containsKey(event.getMessageIdLong())) {
-                    event.deferEdit().queue();
-                    return;
-                }
-                long usrId = Database.SELECTED_PET_CACHE.get(event.getMessageIdLong()).getUserId();
-                if (usrId != userId) {
-                    event.deferEdit().queue();
-                    return;
-                }
+                if (getPetLab(event, member) == null) return;
                 TextInput name = TextInput.create("name", "Name", TextInputStyle.SHORT)
                         .setPlaceholder("Enter a name for the pet")
                         .setRequiredRange(1, 100)
@@ -133,15 +103,7 @@ public class ButtonPress extends Event {
                 event.replyModal(modal).queue();
             }
             case "set-pfp" -> {
-                if (!Database.SELECTED_PET_CACHE.containsKey(event.getMessageIdLong())) {
-                    event.deferEdit().queue();
-                    return;
-                }
-                long usrId = Database.SELECTED_PET_CACHE.get(event.getMessageIdLong()).getUserId();
-                if (usrId != userId) {
-                    event.deferEdit().queue();
-                    return;
-                }
+                if (getPetLab(event, member) == null) return;
                 TextInput name = TextInput.create("pfp", "Profile picture", TextInputStyle.SHORT)
                         .setPlaceholder("Enter an url of the pfp")
                         .build();
@@ -151,38 +113,18 @@ public class ButtonPress extends Event {
                 event.replyModal(modal).queue();
             }
             case "train-pet" -> {
-                if (!Database.SELECTED_PET_CACHE.containsKey(event.getMessageIdLong())) {
-                    event.deferEdit().queue();
-                    return;
-                }
-                me.srin.petbot.database.User usr = Database.SELECTED_PET_CACHE.get(event.getMessageIdLong());
-                long usrId = usr.getUserId();
-                if (usrId != userId) {
-                    event.deferEdit().queue();
-                    return;
-                }
-                Member member = event.getMember();
-                Pet pet = usr.getPet();
-                Map<Pet, Long> map = Database.LAST_TIME_CACHE.get(member);
-                long lastTime = map == null? 0L: Objects.requireNonNullElse(map.get(pet), 0L);
-                long dTime = (System.currentTimeMillis() / 1000) - lastTime;
-                long trainingSeconds = database.getConfig().getTrainingCooldownInSeconds();
-                if (dTime <= trainingSeconds) {
-                    event.replyFormat(
-                            "Oh your pet is still training, wait until you can use this command again at <t:%d:T>",
-                                    lastTime + trainingSeconds
-                            )
-                            .setEphemeral(true).queue();
-                    return;
-                }
-                event.deferEdit().queue();
-                boolean isLevelup = pet.train();
-                if (isLevelup) usr.levelUp();
-                database.getUserRepo().save(usr);
-                database.getPetRepo().save(pet);
-                Database.LAST_TIME_CACHE.put(member, Map.of(pet, System.currentTimeMillis() / 1000));
-                event.getHook().editOriginalEmbeds(Utils.getPetStatsEmbed(pet, user)).queue();
+
             }
         }
+    }
+
+    @Nullable
+    private static Database.PetLab getPetLab(@NotNull ButtonInteractionEvent event, Member member) {
+        Database.PetLab petLab = Database.MEMBER_PET_LAB_MAP.get(member);
+        if (petLab == null || member == null) {
+            event.deferEdit().queue();
+            return null;
+        }
+        return petLab;
     }
 }

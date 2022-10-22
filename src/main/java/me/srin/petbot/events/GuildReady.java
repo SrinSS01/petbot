@@ -26,10 +26,16 @@ public class GuildReady extends GuildEvent {
         Guild guild = event.getGuild();
         LOGGER.info("Guild ready: " + guild.getName());
         guild.updateCommands().addCommands(
-                Commands.slash("buy-pet", "buy a pet to keep as your own"),
-                Commands.slash("view-stats", "view user status"),
-                Commands.slash("view-pets", "view pet details"),
-                Commands.slash("view-pets-user", "view pet details of a certain user")
+                Commands.slash("create-pet", "create a pet for the users"),
+                Commands.slash("edit-pet", "edit a pet")
+                        .addOption(OptionType.INTEGER, "id", "pet id", true),
+                Commands.slash("assign-pet", "assign a pet to a user")
+                        .addOption(OptionType.INTEGER, "id", "pet id", true)
+                        .addOption(OptionType.USER, "user", "user to assign the pet to", true),
+                Commands.slash("pet-list", "List of all pets that were created"),
+//                Commands.slash("user-stats", "view user status"),
+                Commands.slash("pet-stats", "view pet stats"),
+                Commands.slash("view-pets-user", "view pet stats of a certain user")
                         .addOption(OptionType.USER, "user", "user who's pet details will be shown", true),
                 Commands.slash("start-training", "train your pet")
                         .addOption(OptionType.STRING, "pet", "name of the pet to train", true)

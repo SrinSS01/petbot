@@ -1,8 +1,8 @@
 bot:
   token: "token"
   pet-species: [cat,dog,parrot,hamster,snake,dragon,fox,deer,squirrel,beast]
-  pet-limit: 2
   training-cooldown-in-seconds: 720
+  status-background: ""
 database:
   host: "localhost:3306"
   name: "database"

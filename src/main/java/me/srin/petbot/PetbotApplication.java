@@ -24,7 +24,7 @@ public class PetbotApplication {
                               token: token
                               training-cooldown-in-seconds: 720
                               pet-species: ["cat","dog","parrot","hamster","snake","dragon","fox","deer","squirrel","beast"]
-                              pet-limit: 2
+                              status-background: ""
                             database:
                               host: "localhost:3306"
                               name: "name"

@@ -11,26 +11,19 @@ import java.util.Random;
 @Entity
 @Table(name = "pets")
 @RequiredArgsConstructor
+@Getter @Setter
 public class Pet implements Serializable {
-    @Id @Getter @Setter
+    @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     long id;
-    @Getter @Setter
     String name;
-
-    @Getter @Setter
     String type;
-
-    @Getter @Setter @Column(columnDefinition = "int default 0")
+    @Column(columnDefinition = "int default 0")
     int level = 0;
-
-    @Getter @Setter @Column(columnDefinition = "int default 0")
+    @Column(columnDefinition = "int default 0")
     int xp = 0;
-
-    @Getter @Setter @Column(columnDefinition = "int default 100")
+    @Column(columnDefinition = "int default 100")
     int xpLimit = 100;
-
-    @Getter @Setter
     String pfp;
 
     @Transient

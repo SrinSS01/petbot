@@ -14,5 +14,5 @@ public class Config {
     private String token;
     private String[] petSpecies;
     private long trainingCooldownInSeconds;
-    private int petLimit;
+    private String statusBackground;
 }

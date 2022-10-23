@@ -7,7 +7,7 @@ A mysql database.
 
 ## get started
 
-- Download the jar file from the release
+- Download the jar file from the [release](https://github.com/SrinSS01/petbot/releases)
 - Then open terminal and navigate to the folder where you've downloaded the jar file
 - Then type `java -jar petbot-VERSION.jar` and press enter. _Replace VERSION with the version you've downloaded_  
   _example:_  

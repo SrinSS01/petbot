@@ -11,11 +11,11 @@ A mysql database.
 - Then open terminal and navigate to the folder where you've downloaded the jar file
 - Then type `java -jar petbot-VERSION.jar` and press enter. _Replace VERSION with the version you've downloaded_  
   _example:_  
-  ![start](./img/create config.png)  
+  ![start](https://github.com/SrinSS01/petbot/blob/master/img/create%20config.png)  
   _This will create an **application.yml** file in a **config** folder_
 - Open the **application.yml** file in a text editor  
   _Replace the default values with your own suitable values_  
-  ![application.properties](./img/application yml.png)  
+  ![application.properties](https://github.com/SrinSS01/petbot/blob/master/img/application%20yml.png)  
 ### bot
 * `token` - Your bot token
 * `training-cooldown-in-seconds` - Enter the cooldown time(in seconds) for the training period of a pet

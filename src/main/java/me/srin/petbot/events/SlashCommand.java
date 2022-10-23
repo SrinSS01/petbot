@@ -49,7 +49,7 @@ public class SlashCommand extends Event {
         if (selfMember == null) {
             return;
         }
-        if (!selfMember.hasPermission(Permission.VIEW_CHANNEL)) {
+        if (!selfMember.hasPermission(event.getGuildChannel(), Permission.VIEW_CHANNEL)) {
             event.reply("I do not have permission `VIEW_CHANNEL`").setEphemeral(true).queue();
             return;
         }
@@ -217,7 +217,6 @@ public class SlashCommand extends Event {
                 Pet pet = pets.get(0);
                 long petId = pet.getId();
                 int rank = database.getPetRepo().getRankById(petId);
-                LOGGER.info("id: {} rank = {}", petId, rank);
                 pet.setRank(rank);
                 var petStats = Utils.getPetStats(pet, database.getConfig());
                 if (!isModerator && database.getConfig().getTrainingChannels().contains(event.getChannel().getIdLong())) {

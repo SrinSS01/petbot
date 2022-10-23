@@ -2,8 +2,6 @@ package me.srin.petbot.events;
 
 import me.srin.petbot.database.Database;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.guild.GuildReadyEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
@@ -33,20 +31,11 @@ public class GuildReady extends GuildEvent {
                         .addOption(OptionType.INTEGER, "id", "pet id", true)
                         .addOption(OptionType.USER, "user", "user to assign the pet to", true),
                 Commands.slash("pet-list", "List of all pets that were created"),
-//                Commands.slash("user-stats", "view user status"),
                 Commands.slash("pet-stats", "view pet stats"),
                 Commands.slash("view-pets-user", "view pet stats of a certain user")
                         .addOption(OptionType.USER, "user", "user who's pet details will be shown", true),
                 Commands.slash("start-training", "train your pet")
-                        .addOption(OptionType.STRING, "pet", "name of the pet to train", true)
+                        .addOption(OptionType.INTEGER, "pet", "id of the pet to train", true)
         ).queue();
-
-        for (Member member : guild.getMembers()) {
-            User user = member.getUser();
-            if (user.isBot()) {
-                continue;
-            }
-            insertUserIfNotPresent(guild, user);
-        }
     }
 }

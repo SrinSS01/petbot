@@ -6,6 +6,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 @EnableConfigurationProperties
 @ConfigurationProperties("bot")
@@ -15,4 +17,6 @@ public class Config {
     private String[] petSpecies;
     private long trainingCooldownInSeconds;
     private String statusBackground;
+    private List<Long> trainingChannels;
+    private String statusColor;
 }

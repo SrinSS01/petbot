@@ -9,8 +9,6 @@ import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.selections.SelectMenu;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.net.URLEncoder;
@@ -23,7 +21,7 @@ public class Utils {
     public static final SelectMenu.Builder SELECTION_BUILDER = SelectMenu.create("create-pet-selection");
     private static final Random RANDOM = new Random();
     public static final ScheduledThreadPoolExecutor EXECUTOR = new ScheduledThreadPoolExecutor(2);
-    private static final Logger LOGGER = LoggerFactory.getLogger(Utils.class);
+//    private static final Logger LOGGER = LoggerFactory.getLogger(Utils.class);
     public static int randomColor() {
         int a = RANDOM.nextInt(256);
         int r = RANDOM.nextInt(256);
@@ -44,21 +42,21 @@ public class Utils {
                 ).queue(message -> {
                     Database.PetLab petLab = new Database.PetLab();
                     petLab.setPet(Pet.create());
-                    Database.MEMBER_PET_LAB_MAP.put(member, petLab);
                     var task = message.editMessageComponents(
                             ActionRow.of(SELECTION_BUILDER.build().asDisabled()),
                             ActionRow.of(Button.success("select", "select").asDisabled())
                     ).queueAfter(1, TimeUnit.MINUTES, m -> Database.MEMBER_PET_LAB_MAP.remove(m.getMember()));
                     petLab.setTask(task);
+                    Database.MEMBER_PET_LAB_MAP.put(member, petLab);
                 });
     }
 
-    public static String getProgressBar(int xp, int xpLimit) {
+    /*public static String getProgressBar(int xp, int xpLimit) {
         double ratio = xp / (xpLimit * 1.0);
         int progressLength = (int) (ratio * 10);
         int empty = 10 - progressLength;
         return "`%s%s %d%%`".formatted("\u2588".repeat(progressLength), "_".repeat(empty), (int) (ratio * 100));
-    }
+    }*/
     public static String petDetails(Pet pet) {
         String petName = pet.getName();
         String type = pet.getType();
@@ -83,23 +81,24 @@ public class Utils {
         return embedBuilder;
     }
 
-    /*public static String getPetStats(Pet pet, String background) {
+    public static String getPetStats(Pet pet, Config config) {
         StringBuilder urlBuilder = new StringBuilder();
         String petName = pet.getName();
         String profile = pet.getPfp();
-        urlBuilder.append("https://next-app-inky-iota.vercel.app/api/og?")
+        urlBuilder.append("https://next-app-two-phi.vercel.app/api/og?")
                 .append("xp=").append(pet.getXp()).append('&')
                 .append("xp-limit=").append(pet.getXpLimit()).append('&')
-                .append("color=yellow").append('&')
+                .append("color=").append(config.getStatusColor()).append('&')
                 .append("level=").append(pet.getLevel()).append('&')
+                .append("rank=").append(pet.getRank()).append('&')
                 .append("type=").append(pet.getType()).append('&')
                 .append("id=").append(pet.getId()).append('&')
-                .append("background=").append(URLEncoder.encode(background, StandardCharsets.UTF_8)).append('&')
+                .append("background=").append(URLEncoder.encode(config.getStatusBackground(), StandardCharsets.UTF_8)).append('&')
                 .append(petName == null? '\0': ("name=" + URLEncoder.encode(petName, StandardCharsets.UTF_8))).append('&')
                 .append(profile == null? '\0': ("profile=" + URLEncoder.encode(profile, StandardCharsets.UTF_8)));
         return urlBuilder.toString();
-    }*/
-    public static EmbedBuilder getPetStats(Pet pet) {
+    }
+    /*public static EmbedBuilder getPetStats(Pet pet) {
         EmbedBuilder builder = new EmbedBuilder();
         builder.setTitle("**pet stats**").setDescription("""
                 %s
@@ -107,9 +106,9 @@ public class Utils {
                 %s
                 """.formatted(petDetails(pet), getStats(pet))).setThumbnail(pet.getPfp());
         return builder;
-    }
+    }*/
 
-    private static String getStats(Pet pet) {
+    /*private static String getStats(Pet pet) {
         StringBuilder builder = new StringBuilder();
         int xp = pet.getXp();
         int xpLimit = pet.getXpLimit();
@@ -118,5 +117,5 @@ public class Utils {
                 .append("_progress_").append('\n')
                 .append('`').append(getProgressBar(xp, xpLimit)).append('`');
         return builder.toString();
-    }
+    }*/
 }

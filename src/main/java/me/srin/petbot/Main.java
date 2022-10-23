@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import me.srin.petbot.database.Database;
 import me.srin.petbot.events.*;
+import me.srin.petbot.utils.Utils;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.OnlineStatus;
@@ -49,8 +50,6 @@ public class Main implements CommandLineRunner {
                 .setActivity(Activity.playing("Selling pets :cat:"))
                 .addEventListeners(
                         GuildReady.create(database),
-                        GuildJoin.create(database),
-                        GuildMemberJoin.create(database),
                         SlashCommand.create(database),
                         SelectionMenu.create(database),
                         ButtonPress.create(database),
@@ -64,6 +63,7 @@ public class Main implements CommandLineRunner {
                 command = sc.next();
             }
             sc.close();
+            Utils.EXECUTOR.shutdownNow();
             bot.shutdownNow();
         }, "stop thread");
         stopThread.start();

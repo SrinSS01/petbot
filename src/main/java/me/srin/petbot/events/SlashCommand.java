@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import static me.srin.petbot.utils.Utils.SELECTION_BUILDER;
@@ -54,8 +55,6 @@ public class SlashCommand extends Event {
         }
         String command = event.getName();
         User user = event.getUser();
-//        long user_id = user.getIdLong();
-        long guild_id = guild.getIdLong();
         Member member = event.getMember();
         if (member == null) {
             return;
@@ -159,7 +158,10 @@ public class SlashCommand extends Event {
                             .queue();
                     return;
                 }
-                User asUser = Objects.requireNonNull(event.getOption("user")).getAsUser();
+                Member asMember = Objects.requireNonNull(event.getOption("user")).getAsMember();
+                if (asMember == null) {
+                    return;
+                }
                 Optional<PetUserRDBMS> optionalPetUser = database.getPetUserRDBMSRepository().findByPetId(pet_id);
                 if (optionalPetUser.isPresent()) {
                     PetUserRDBMS petUser = optionalPetUser.get();
@@ -167,67 +169,26 @@ public class SlashCommand extends Event {
                             .editOriginalEmbeds(
                                     new EmbedBuilder()
                                             .setTitle(warning + " Error")
-                                            .setDescription("Sorry but this pet has already been assigned to <@%s>".formatted(petUser.getUserId()))
+                                            .setDescription("Sorry but this pet has already been assigned to <@%s>".formatted(petUser.getMemberId()))
                                             .setColor(0xFFFF0000)
                                             .build()
                             )
                             .queue();
                 } else {
                     PetUserRDBMS entity = PetUserRDBMS.create();
-                    entity.setGuildId(guild_id);
+                    entity.setMemberId(asMember.getIdLong());
                     entity.setPetId(pet_id);
-                    entity.setUserId(asUser.getIdLong());
                     database.getPetUserRDBMSRepository().save(entity);
                     event.getHook()
                             .editOriginalEmbeds(new EmbedBuilder()
                                     .setTitle("Success")
-                                    .setDescription("Pet with id: %d has been assigned to %s".formatted(pet_id, asUser.getAsMention()))
+                                    .setDescription("Pet with id: %d has been assigned to %s".formatted(pet_id, asMember.getAsMention()))
                                     .setColor(0xFF00FF00)
                                     .build()
                             )
                             .queue();
                 }
             }
-            /*case "view-stats" -> {
-                var usr = database.getUserRepo().findById(me.srin.petbot.database.User.ID.of(user_id, guild_id));
-                if (usr.isEmpty()) {
-                    event.reply("who are you?").setEphemeral(true).queue();
-                    return;
-                }
-                var petIds = database.getPetUserRDBMSRepository().findByUserIdAndGuildId(user_id, guild_id);
-                if (petIds.isEmpty()) {
-                    event.reply("You don't have any pets").setEphemeral(true).queue();
-                    return;
-                }
-                var pets = database.getPetRepo().findAllById(petIds);
-                StringBuilder sb = new StringBuilder();
-                pets.forEach(pet ->
-                        sb.append('`').append(pet.getName()).append('`').append('\n')
-                          .append(Utils.getProgressBar(pet.getXp(), pet.getXpLimit())).append("\n\n"));
-                MessageEmbed embed = new EmbedBuilder()
-                        .setTitle("**User stats**")
-                        .setThumbnail(user.getAvatarUrl())
-                        .setDescription(
-                                """
-                                `user:` %s
-                                `xp:` (%d/%d)
-                                `level`: %d
-                                
-                                _progress_
-                                %s
-                                                            
-                                _pets progress_
-                                %s
-                                """.formatted(
-                                        user.getAsTag(),
-                                        usr.get().getXp(), usr.get().getXpLimit(),
-                                        usr.get().getLevel(),
-                                        Utils.getProgressBar(usr.get().getXp(), usr.get().getXpLimit()),
-                                        sb.toString()
-                                )
-                        ).setTimestamp(new Date().toInstant()).build();
-                event.replyEmbeds(embed).queue();
-            }*/
             case "pet-stats", "view-pets-user" -> {
                 OptionMapping option = event.getOption("user");
                 boolean isModerator = false;
@@ -239,7 +200,8 @@ public class SlashCommand extends Event {
                     }
                     isModerator = true;
                 }
-                List<Long> petIds = database.getPetUserRDBMSRepository().findByUserIdAndGuildId(member.getUser().getIdLong(), guild_id);
+                long memberIdLong = member.getIdLong();
+                List<Long> petIds = database.getPetUserRDBMSRepository().findByMemberId(memberIdLong);
                 if (petIds.isEmpty()) {
                     event.reply("You don't own any pets").setEphemeral(true).queue();
                     return;
@@ -247,77 +209,83 @@ public class SlashCommand extends Event {
                 event.deferReply().queue();
                 List<Pet> pets = database.getPetRepo().findAllById(petIds);
                 SelectMenu.Builder builder = SelectMenu.create("pet-stats");
-                HashMap<Long, Pet> petMap = new HashMap<>();
                 for (Pet pet : pets) {
-                    petMap.put(pet.getId(), pet);
                     String petName = pet.getName();
                     builder.addOption(petName, String.valueOf(pet.getId()), pet.getType());
                 }
                 SelectMenu selectionMenu = builder.build();
                 Pet pet = pets.get(0);
-                var petStats = Utils.getPetStats(pet).build();
-                if (!isModerator) {
-                    event.getHook().editOriginalEmbeds(petStats).setComponents(
+                long petId = pet.getId();
+                int rank = database.getPetRepo().getRankById(petId);
+                LOGGER.info("id: {} rank = {}", petId, rank);
+                pet.setRank(rank);
+                var petStats = Utils.getPetStats(pet, database.getConfig());
+                if (!isModerator && database.getConfig().getTrainingChannels().contains(event.getChannel().getIdLong())) {
+                    event.getHook().editOriginal(petStats).setComponents(
                             ActionRow.of(selectionMenu),
                             ActionRow.of(
                                     Button.primary("train-pet", "Train")
                             )
                     ).queue(message -> {
-                        Database.MESSAGE_PET_STATUS_MAP_SELECTED.put(message.getIdLong(), pet);
-                        Database.MESSAGE_PET_STATUS_MAP.put(message.getIdLong(), petMap);
+                        Database.MESSAGE_PET_STATUS_MAP_SELECTED.put(message.getIdLong(), pet.getId());
                         message.editMessageComponents(
                                 ActionRow.of(selectionMenu.asDisabled()),
                                 ActionRow.of(
                                         Button.primary("train-pet", "Train").asDisabled()
                                 )
-                        ).queueAfter(10, TimeUnit.MINUTES, m -> Database.MESSAGE_PET_STATUS_MAP.remove(m.getIdLong()));
+                        ).queueAfter(10, TimeUnit.MINUTES, m -> Database.MESSAGE_PET_STATUS_MAP_SELECTED.remove(m.getIdLong()));
                     });
                 } else {
                     event.getHook()
-                            .editOriginalEmbeds(petStats)
+                            .editOriginal(petStats)
                             .setComponents(ActionRow.of(selectionMenu))
                             .queue(message -> {
-                                Database.MESSAGE_PET_STATUS_MAP_SELECTED.put(message.getIdLong(), pet);
-                                Database.MESSAGE_PET_STATUS_MAP.put(message.getIdLong(), petMap);
+                                Database.MESSAGE_PET_STATUS_MAP_SELECTED.put(message.getIdLong(), pet.getId());
                                 message.editMessageComponents(
                                         ActionRow.of(selectionMenu.asDisabled())
-                                ).queueAfter(10, TimeUnit.MINUTES, m -> Database.MESSAGE_PET_STATUS_MAP.remove(m.getIdLong()));
+                                ).queueAfter(10, TimeUnit.MINUTES, m -> Database.MESSAGE_PET_STATUS_MAP_SELECTED.remove(m.getIdLong()));
                             });
                 }
             }
-            /*case "start-training" -> {
-                OptionMapping petOption = event.getOption("pet");
-                if (petOption == null) {
+            case "start-training" -> {
+                if (!database.getConfig().getTrainingChannels().contains(event.getChannel().getIdLong())) {
+                    event.reply("Train your pet in the training channel").setEphemeral(true).queue();
                     return;
                 }
-                String petName = petOption.getAsString();
-                var petIds = database.getPetUserRDBMSRepository().findByUserIdAndGuildId(user_id, guild_id);
-                var usr = database.getUserRepo().findById(me.srin.petbot.database.User.ID.of(user_id, guild_id));
-                if (petIds.isEmpty()) {
-                    event.reply("You don't own any pets").setEphemeral(true).queue();
+                long petId = Objects.requireNonNull(event.getOption("pet")).getAsLong();
+                Optional<PetUserRDBMS> petUser = database.getPetUserRDBMSRepository().findById(PetUserRDBMS.ID.of(member.getIdLong(), petId));
+                if (petUser.isEmpty()) {
+                    event.reply("You don't own any pets by id " + petId).setEphemeral(true).queue();
                     return;
                 }
-                List<Pet> pets = database.getPetRepo().findAllById(petIds);
-                Optional<Pet> optionalPet = pets.stream().filter(pet -> pet.getName().equals(petName)).findAny();
-                if (optionalPet.isPresent() && usr.isPresent()) {
+                Optional<Pet> optionalPet = database.getPetRepo().findById(petId);
+                if (optionalPet.isPresent()) {
                     Pet pet = optionalPet.get();
-                    Map<Pet, Long> map = Database.LAST_TIME_CACHE.get(member);
-                    Long lastTime = map == null? 0L: Objects.requireNonNullElse(map.get(pet), 0L);
-                    long dTime = System.currentTimeMillis() - lastTime;
-                    if (dTime <= database.getConfig().getTrainingCooldownInSeconds()) {
-                        event.replyFormat("Oh your pet is still training, wait for <t:%d:T> until you can use this command again", dTime).setEphemeral(true).queue();
-                        return;
+                    long cooldown = pet.getCooldown();
+                    long currentTime = System.currentTimeMillis() / 1000;
+                    long trainingCooldownInSeconds = database.getConfig().getTrainingCooldownInSeconds();
+                    if ((currentTime - cooldown) <= trainingCooldownInSeconds) {
+                        event.replyFormat(":stopwatch: Oh your pet is still training, wait until you can use this command again at <t:%d:T>", cooldown + trainingCooldownInSeconds)
+                                .setEphemeral(true).queue();
+                    } else {
+                        long xpLimit = pet.getXpLimit();
+                        long trainingCount = pet.getTrainingCount();
+                        long periodInSeconds = (trainingCooldownInSeconds * 1000) / (xpLimit / trainingCount);
+
+                        pet.setCooldown(currentTime);
+                        ScheduledFuture<?> scheduledFuture = Utils.EXECUTOR.scheduleWithFixedDelay(
+                                () -> {
+                                    pet.train();
+                                    database.getPetRepo().save(pet);
+                                }, 0, periodInSeconds, TimeUnit.MILLISECONDS
+                        );
+                        event.replyFormat("pet started training in %s", event.getChannel().getName()).setEphemeral(true).queue();
+                        Utils.EXECUTOR.schedule(() -> {
+                            scheduledFuture.cancel(true);
+                        }, trainingCooldownInSeconds, TimeUnit.SECONDS);
                     }
-                    boolean isLevelup = pet.train();
-                    if (isLevelup) {
-                        usr.get().levelUp();
-                    }
-                    database.getPetRepo().save(pet);
-                    Database.LAST_TIME_CACHE.put(member, Map.of(pet, System.currentTimeMillis() / 1000));
-                } else {
-                    event.reply("You don't own any pets named " + petName).setEphemeral(true).queue();
                 }
-            }*/
+            }
         }
     }
 }

@@ -19,7 +19,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.Date;
-import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 public class ButtonPress extends Event {
@@ -39,14 +40,12 @@ public class ButtonPress extends Event {
         if (guild == null) {
             return;
         }
-//        long guildId = guild.getIdLong();
         Button button = event.getButton();
         String id = button.getId();
         if (id == null) {
             return;
         }
         User user = event.getUser();
-//        long userId = user.getIdLong();
         final Member member = event.getMember();
         if (member == null) {
             event.deferEdit().queue();
@@ -114,11 +113,35 @@ public class ButtonPress extends Event {
                 event.replyModal(modal).queue();
             }
             case "train-pet" -> {
-                Pet pet = Database.MESSAGE_PET_STATUS_MAP_SELECTED.get(event.getMessageIdLong());
+                Long petId = Database.MESSAGE_PET_STATUS_MAP_SELECTED.get(event.getMessageIdLong());
+                Optional<Pet> petOptional = database.getPetRepo().findById(petId);
+                if (petOptional.isEmpty()) {
+                    event.deferEdit().queue();
+                    return;
+                }
+                Pet pet = petOptional.get();
                 long cooldown = pet.getCooldown();
-                long currentTime = System.currentTimeMillis();
-                if ((currentTime - cooldown) <= database.getConfig().getTrainingCooldownInSeconds()) {
-
+                long currentTime = System.currentTimeMillis() / 1000;
+                long trainingCooldownInSeconds = database.getConfig().getTrainingCooldownInSeconds();
+                if ((currentTime - cooldown) <= trainingCooldownInSeconds) {
+                    event.replyFormat(":stopwatch: Oh your pet is still training, wait until you can use this command again at <t:%d:T>", cooldown + trainingCooldownInSeconds)
+                            .setEphemeral(true).queue();
+                } else {
+                    long xpLimit = pet.getXpLimit();
+                    long trainingCount = pet.getTrainingCount();
+                    long periodInSeconds = (trainingCooldownInSeconds * 1000) / (xpLimit / trainingCount);
+                    pet.setCooldown(currentTime);
+                    ScheduledFuture<?> scheduledFuture = Utils.EXECUTOR.scheduleWithFixedDelay(
+                            () -> {
+                                pet.train();
+                                database.getPetRepo().save(pet);
+                            }, 0, periodInSeconds, TimeUnit.MILLISECONDS
+                    );
+                    database.getPetRepo().save(pet);
+                    event.replyFormat("pet started training in %s", event.getChannel().getName()).setEphemeral(true).queue();
+                    Utils.EXECUTOR.schedule(() -> {
+                        scheduledFuture.cancel(true);
+                    }, trainingCooldownInSeconds, TimeUnit.SECONDS);
                 }
             }
         }

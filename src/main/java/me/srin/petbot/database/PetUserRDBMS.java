@@ -14,25 +14,19 @@ import java.io.Serializable;
 @NoArgsConstructor
 @Getter @Setter
 public class PetUserRDBMS implements Serializable {
-    @Id private long userId;
-    @Id private long guildId;
+    @Id private long memberId;
     @Id private long petId;
 
     public static PetUserRDBMS create() {
         return new PetUserRDBMS();
     }
 
-    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(staticName = "of")
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
     @EqualsAndHashCode(onlyExplicitlyIncluded = true)
     @Getter @Setter
     public static class ID implements Serializable {
-        private long userId;
-        private long guildId;
+        private long memberId;
         private long petId;
-
-        public static ID of(long user_id, long guild_id, long petId) {
-            return new ID(user_id, guild_id, petId);
-        }
     }
 }

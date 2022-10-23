@@ -8,10 +8,9 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.events.interaction.component.SelectMenuInteractionEvent;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Map;
+import java.util.Optional;
 
 public class SelectionMenu extends Event {
-
     private SelectionMenu(Database database) {
         super(database);
     }
@@ -45,14 +44,18 @@ public class SelectionMenu extends Event {
                 pet.setType(selected);
             }
             case "pet-stats" -> {
-                Map<Long, Pet> petMap = Database.MESSAGE_PET_STATUS_MAP.get(event.getMessageIdLong());
-                if (petMap == null) {
+                long petId = Long.parseLong(selectOption.getValue());
+                Optional<Pet> petOptional = database.getPetRepo().findById(petId);
+                if (petOptional.isEmpty()) {
+                    event.deferEdit().queue();
                     return;
                 }
-                Pet pet = petMap.get(Long.parseLong(selectOption.getValue()));
-                Database.MESSAGE_PET_STATUS_MAP_SELECTED.put(event.getMessageIdLong(), pet);
-                var petStats = Utils.getPetStats(pet);
-                event.editMessageEmbeds(petStats.build()).queue();
+                Pet pet = petOptional.get();
+                int rank = database.getPetRepo().getRankById(petId);
+                pet.setRank(rank);
+                Database.MESSAGE_PET_STATUS_MAP_SELECTED.put(event.getMessageIdLong(), petId);
+                var petStats = Utils.getPetStats(pet, database.getConfig());
+                event.editMessage(petStats).queue();
             }
         }
     }

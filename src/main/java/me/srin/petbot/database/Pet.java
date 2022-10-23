@@ -24,33 +24,29 @@ public class Pet implements Serializable {
     int xp = 0;
     @Column(columnDefinition = "int default 100")
     int xpLimit = 100;
+    int totalXp;
     String pfp;
+    long cooldown = 0;
+    @Column(columnDefinition = "int default 2")
+    long trainingCount = 2;
 
     @Transient
     protected static final Random RANDOM = new Random();
     @Transient
-    private long cooldown = 0;
+    private int rank;
 
     public static Pet create() {
         return new Pet();
     }
 
-    protected static int generateXP() {
-        return RANDOM.nextInt(1, 10);
-    }
-
-    /**
-     * @return true if leveled up
-     * */
-    public boolean train() {
-        int dXP = generateXP();
-        xp += dXP;
+    public void train() {
+        xp++;
+        totalXp++;
         if (xp >= xpLimit) {
             xp = xpLimit - xp;
             level++;
-            xpLimit = level * 201;
-            return true;
+            xpLimit = level * 231;
+            trainingCount *= 2;
         }
-        return false;
     }
 }

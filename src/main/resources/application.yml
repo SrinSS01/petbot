@@ -2,7 +2,10 @@ bot:
   token: "token"
   pet-species: [cat,dog,parrot,hamster,snake,dragon,fox,deer,squirrel,beast]
   training-cooldown-in-seconds: 720
-  status-background: ""
+  status-background: null
+  status-color: null
+  training-channels: 0
+
 database:
   host: "localhost:3306"
   name: "database"

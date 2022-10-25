@@ -80,7 +80,7 @@ public class ButtonPress extends Event {
             }
             case "remove" -> {
                 if (getPetLab(event, member) == null) return;
-                Database.MEMBER_PET_LAB_MAP.remove(member);
+                Database.MEMBER_PET_LAB_MAP.get(guild.getIdLong()).remove(member.getIdLong());
                 event.getMessage().delete().queue();
             }
             case "save" -> {
@@ -114,6 +114,10 @@ public class ButtonPress extends Event {
             }
             case "train-pet" -> {
                 Long petId = Database.MESSAGE_PET_STATUS_MAP_SELECTED.get(event.getMessageIdLong());
+                if (petId == null) {
+                    event.deferEdit().queue();
+                    return;
+                }
                 Optional<Pet> petOptional = database.getPetRepo().findById(petId);
                 if (petOptional.isEmpty()) {
                     event.deferEdit().queue();
@@ -124,13 +128,17 @@ public class ButtonPress extends Event {
                 long currentTime = System.currentTimeMillis() / 1000;
                 long trainingCooldownInSeconds = database.getConfig().getTrainingCooldownInSeconds();
                 if ((currentTime - cooldown) <= trainingCooldownInSeconds) {
-                    event.replyFormat(":stopwatch: Oh your pet is still training, wait until you can use this command again at <t:%d:T>", cooldown + trainingCooldownInSeconds)
+                    event.replyFormat(
+                            ":stopwatch: Oh your pet is still training <#%s>, wait until you can use this command again at <t:%d:T>",
+                                    pet.getTrainingChannelId(), cooldown + trainingCooldownInSeconds
+                            )
                             .setEphemeral(true).queue();
                 } else {
                     long xpLimit = pet.getXpLimit();
                     long trainingCount = pet.getTrainingCount();
                     long periodInSeconds = (trainingCooldownInSeconds * 1000) / (xpLimit / trainingCount);
                     pet.setCooldown(currentTime);
+                    pet.setTrainingChannelId(event.getChannel().getIdLong());
                     ScheduledFuture<?> scheduledFuture = Utils.EXECUTOR.scheduleWithFixedDelay(
                             () -> {
                                 pet.train();
@@ -138,7 +146,7 @@ public class ButtonPress extends Event {
                             }, 0, periodInSeconds, TimeUnit.MILLISECONDS
                     );
                     database.getPetRepo().save(pet);
-                    event.replyFormat("pet started training in %s", event.getChannel().getName()).setEphemeral(true).queue();
+                    event.replyFormat("pet started training in %s", event.getChannel().getAsMention()).setEphemeral(true).queue();
                     Utils.EXECUTOR.schedule(() -> {
                         scheduledFuture.cancel(true);
                     }, trainingCooldownInSeconds, TimeUnit.SECONDS);
@@ -149,8 +157,13 @@ public class ButtonPress extends Event {
 
     @Nullable
     private static Database.PetLab getPetLab(@NotNull ButtonInteractionEvent event, Member member) {
-        Database.PetLab petLab = Database.MEMBER_PET_LAB_MAP.get(member);
-        if (petLab == null || member == null) {
+        Guild guild = event.getGuild();
+        if (guild == null) {
+            event.deferEdit().queue();
+            return null;
+        }
+        Database.PetLab petLab = Database.MEMBER_PET_LAB_MAP.get(guild.getIdLong()).get(member.getIdLong());
+        if (petLab == null) {
             event.deferEdit().queue();
             return null;
         }

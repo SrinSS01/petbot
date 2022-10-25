@@ -18,6 +18,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 import java.util.Scanner;
+import java.util.concurrent.TimeUnit;
 
 import static net.dv8tion.jda.api.requests.GatewayIntent.*;
 
@@ -56,16 +57,12 @@ public class Main implements CommandLineRunner {
                         ModalInteraction.create(database)
                 )
                 .build();
-        Thread stopThread = new Thread(() -> {
-            Scanner sc = new Scanner(System.in);
-            String command = null;
-            while (!"stop".equals(command)) {
-                command = sc.next();
+        Scanner sc = new Scanner(System.in);
+        Utils.EXECUTOR.scheduleWithFixedDelay(() -> {
+            if (sc.next().equals("stop")) {
+                Utils.EXECUTOR.shutdownNow();
+                bot.shutdownNow();
             }
-            sc.close();
-            Utils.EXECUTOR.shutdownNow();
-            bot.shutdownNow();
-        }, "stop thread");
-        stopThread.start();
+        }, 0, 1, TimeUnit.SECONDS);
     }
 }

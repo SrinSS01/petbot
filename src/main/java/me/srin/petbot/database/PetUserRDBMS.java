@@ -15,6 +15,7 @@ import java.io.Serializable;
 @Getter @Setter
 public class PetUserRDBMS implements Serializable {
     @Id private long memberId;
+    @Id private long guildId;
     @Id private long petId;
 
     public static PetUserRDBMS create() {
@@ -27,6 +28,7 @@ public class PetUserRDBMS implements Serializable {
     @Getter @Setter
     public static class ID implements Serializable {
         private long memberId;
+        private long guildId;
         private long petId;
     }
 }

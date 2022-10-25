@@ -3,6 +3,7 @@ package me.srin.petbot.events;
 import me.srin.petbot.database.Database;
 import me.srin.petbot.database.Pet;
 import me.srin.petbot.utils.Utils;
+import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
@@ -29,7 +30,11 @@ public class ModalInteraction extends Event {
         if (member == null) {
             return;
         }
-        Database.PetLab petLab = Database.MEMBER_PET_LAB_MAP.get(member);
+        Guild guild = event.getGuild();
+        if (guild == null) {
+            return;
+        }
+        Database.PetLab petLab = Database.MEMBER_PET_LAB_MAP.get(guild.getIdLong()).get(member.getIdLong());
         Pet pet = petLab.getPet();
         switch (event.getModalId()) {
             case "change-name" -> {

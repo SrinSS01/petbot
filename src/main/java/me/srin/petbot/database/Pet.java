@@ -27,7 +27,8 @@ public class Pet implements Serializable {
     int totalXp;
     String pfp;
     long cooldown = 0;
-    @Column(columnDefinition = "int default 2")
+    long trainingChannelId = 0;
+    @Column(columnDefinition = "bigint default 2")
     long trainingCount = 2;
 
     @Transient

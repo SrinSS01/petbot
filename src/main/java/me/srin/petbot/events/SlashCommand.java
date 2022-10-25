@@ -59,6 +59,7 @@ public class SlashCommand extends Event {
         if (member == null) {
             return;
         }
+        long guildId = event.getGuild().getIdLong();
         switch (command) {
             case "create-pet" -> {
                 event.deferReply().queue();
@@ -75,8 +76,10 @@ public class SlashCommand extends Event {
                     petStatsEmbed.setFooter(Date.from(Instant.now()).toString(), user.getAvatarUrl());
                     MessageEmbed embed = petStatsEmbed.build();
                     Database.PetLab petLab = new Database.PetLab();
-                    Database.MEMBER_PET_LAB_MAP.put(member, petLab);
+                    Database.MEMBER_PET_LAB_MAP.computeIfAbsent(guildId, k -> Map.of());
+                    Database.MEMBER_PET_LAB_MAP.get(guildId).put(member.getIdLong(), petLab);
                     petLab.setPet(pet);
+                    Member finalMember = member;
                     event.getHook()
                             .editOriginalEmbeds(embed)
                             .setComponents(
@@ -96,7 +99,7 @@ public class SlashCommand extends Event {
                                                 Button.success("save", "Save Changes").asDisabled(),
                                                 Button.danger("remove", "Remove").asDisabled()
                                         )
-                                ).queueAfter(3, TimeUnit.MINUTES, m -> Database.MEMBER_PET_LAB_MAP.remove(m.getMember()));
+                                ).queueAfter(3, TimeUnit.MINUTES, m -> Database.MEMBER_PET_LAB_MAP.get(guildId).remove(finalMember.getIdLong()));
                             });
                 } else {
                     event.getHook()
@@ -162,7 +165,7 @@ public class SlashCommand extends Event {
                 if (asMember == null) {
                     return;
                 }
-                Optional<PetUserRDBMS> optionalPetUser = database.getPetUserRDBMSRepository().findByPetId(pet_id);
+                Optional<PetUserRDBMS> optionalPetUser = database.getPetUserRDBMSRepository().findByGuildIdAndPetId(guildId, pet_id);
                 if (optionalPetUser.isPresent()) {
                     PetUserRDBMS petUser = optionalPetUser.get();
                     event.getHook()
@@ -177,6 +180,7 @@ public class SlashCommand extends Event {
                 } else {
                     PetUserRDBMS entity = PetUserRDBMS.create();
                     entity.setMemberId(asMember.getIdLong());
+                    entity.setGuildId(guildId);
                     entity.setPetId(pet_id);
                     database.getPetUserRDBMSRepository().save(entity);
                     event.getHook()
@@ -201,7 +205,7 @@ public class SlashCommand extends Event {
                     isModerator = true;
                 }
                 long memberIdLong = member.getIdLong();
-                List<Long> petIds = database.getPetUserRDBMSRepository().findByMemberId(memberIdLong);
+                List<Long> petIds = database.getPetUserRDBMSRepository().findByMemberIdAndGuildId(memberIdLong, guildId);
                 if (petIds.isEmpty()) {
                     event.reply("You don't own any pets").setEphemeral(true).queue();
                     return;
@@ -252,7 +256,7 @@ public class SlashCommand extends Event {
                     return;
                 }
                 long petId = Objects.requireNonNull(event.getOption("pet")).getAsLong();
-                Optional<PetUserRDBMS> petUser = database.getPetUserRDBMSRepository().findById(PetUserRDBMS.ID.of(member.getIdLong(), petId));
+                Optional<PetUserRDBMS> petUser = database.getPetUserRDBMSRepository().findById(PetUserRDBMS.ID.of(member.getIdLong(), guildId, petId));
                 if (petUser.isEmpty()) {
                     event.reply("You don't own any pets by id " + petId).setEphemeral(true).queue();
                     return;
@@ -264,7 +268,10 @@ public class SlashCommand extends Event {
                     long currentTime = System.currentTimeMillis() / 1000;
                     long trainingCooldownInSeconds = database.getConfig().getTrainingCooldownInSeconds();
                     if ((currentTime - cooldown) <= trainingCooldownInSeconds) {
-                        event.replyFormat(":stopwatch: Oh your pet is still training, wait until you can use this command again at <t:%d:T>", cooldown + trainingCooldownInSeconds)
+                        event.replyFormat(
+                                ":stopwatch: Oh your pet is still training in <#%d>, wait until you can use this command again at <t:%d:T>",
+                                        pet.getTrainingChannelId(), cooldown + trainingCooldownInSeconds
+                                )
                                 .setEphemeral(true).queue();
                     } else {
                         long xpLimit = pet.getXpLimit();
@@ -272,13 +279,14 @@ public class SlashCommand extends Event {
                         long periodInSeconds = (trainingCooldownInSeconds * 1000) / (xpLimit / trainingCount);
 
                         pet.setCooldown(currentTime);
+                        pet.setTrainingChannelId(event.getChannel().getIdLong());
                         ScheduledFuture<?> scheduledFuture = Utils.EXECUTOR.scheduleWithFixedDelay(
                                 () -> {
                                     pet.train();
                                     database.getPetRepo().save(pet);
                                 }, 0, periodInSeconds, TimeUnit.MILLISECONDS
                         );
-                        event.replyFormat("pet started training in %s", event.getChannel().getName()).setEphemeral(true).queue();
+                        event.replyFormat("pet started training in %s", event.getChannel().getAsMention()).setEphemeral(true).queue();
                         Utils.EXECUTOR.schedule(() -> {
                             scheduledFuture.cancel(true);
                         }, trainingCooldownInSeconds, TimeUnit.SECONDS);

@@ -13,6 +13,7 @@ import net.dv8tion.jda.api.interactions.components.selections.SelectMenu;
 import java.awt.*;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -42,12 +43,15 @@ public class Utils {
                 ).queue(message -> {
                     Database.PetLab petLab = new Database.PetLab();
                     petLab.setPet(Pet.create());
+                    long guildId = member.getGuild().getIdLong();
+                    long memberId = member.getIdLong();
                     var task = message.editMessageComponents(
                             ActionRow.of(SELECTION_BUILDER.build().asDisabled()),
                             ActionRow.of(Button.success("select", "select").asDisabled())
-                    ).queueAfter(1, TimeUnit.MINUTES, m -> Database.MEMBER_PET_LAB_MAP.remove(m.getMember()));
+                    ).queueAfter(1, TimeUnit.MINUTES, m -> Database.MEMBER_PET_LAB_MAP.get(guildId).remove(memberId));
                     petLab.setTask(task);
-                    Database.MEMBER_PET_LAB_MAP.put(member, petLab);
+                    Database.MEMBER_PET_LAB_MAP.computeIfAbsent(guildId, k -> Map.of());
+                    Database.MEMBER_PET_LAB_MAP.get(guildId).put(memberId, petLab);
                 });
     }
 

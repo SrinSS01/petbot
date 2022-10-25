@@ -35,7 +35,7 @@ public class SelectionMenu extends Event {
         }
         switch (id) {
             case "create-pet-selection" -> {
-                Database.PetLab petLab = Database.MEMBER_PET_LAB_MAP.get(member);
+                Database.PetLab petLab = Database.MEMBER_PET_LAB_MAP.get(guild.getIdLong()).get(member.getIdLong());
                 event.deferEdit().queue();
                 if (petLab == null) {
                     return;

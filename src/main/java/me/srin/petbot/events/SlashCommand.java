@@ -207,7 +207,7 @@ public class SlashCommand extends Event {
                 long memberIdLong = member.getIdLong();
                 List<Long> petIds = database.getPetUserRDBMSRepository().findByMemberIdAndGuildId(memberIdLong, guildId);
                 if (petIds.isEmpty()) {
-                    event.reply("You don't own any pets").setEphemeral(true).queue();
+                    event.replyFormat("%s doesn't own any pets", member.getAsMention()).setEphemeral(true).queue();
                     return;
                 }
                 event.deferReply().queue();

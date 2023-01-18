@@ -16,25 +16,25 @@ import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.selections.SelectMenu;
+import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
+import net.dv8tion.jda.api.utils.FileUpload;
+import okhttp3.Request;
+import okhttp3.Response;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-
-import static me.srin.petbot.utils.Utils.SELECTION_BUILDER;
 
 public class SlashCommand extends Event {
     private static final Logger LOGGER = LoggerFactory.getLogger(SlashCommand.class);
 
     private SlashCommand(Database database) {
         super(database);
-        for (String type : database.getConfig().getPetSpecies()) {
-            SELECTION_BUILDER.addOption(type, type);
-        }
     }
 
     public static SlashCommand create(Database database) {
@@ -64,7 +64,34 @@ public class SlashCommand extends Event {
             case "create-pet" -> {
                 event.deferReply().queue();
                 InteractionHook hook = event.getHook();
-                Utils.createPet(hook, member);
+                Database.PetLab petLab = new Database.PetLab();
+                Pet pet = Pet.create();
+                pet.setType(Objects.requireNonNull(event.getOption("type")).getAsString());
+                petLab.setPet(pet);
+                long memberId = member.getIdLong();
+                Database.MEMBER_PET_LAB_MAP.computeIfAbsent(guildId, k -> new HashMap<>());
+                Database.MEMBER_PET_LAB_MAP.get(guildId).put(memberId, petLab);
+
+                EmbedBuilder petStatsEmbed = Utils.getPetDetails(pet);
+                petStatsEmbed.setFooter(Date.from(Instant.now()).toString(), user.getAvatarUrl());
+                MessageEmbed embed = petStatsEmbed.build();
+                hook.editOriginalEmbeds(embed)
+                        .setComponents(
+                                ActionRow.of(
+                                        Button.primary("change-name", "Change name"),
+                                        Button.primary("set-pfp", "Set pfp"),
+                                        Button.success("save", "Save Changes"),
+                                        Button.danger("remove", "Remove")
+                                )
+                        )
+                        .queue(message -> message.editMessageComponents(
+                                ActionRow.of(
+                                        Button.primary("change-name", "Change name").asDisabled(),
+                                        Button.primary("set-pfp", "Set pfp").asDisabled(),
+                                        Button.success("save", "Save Changes").asDisabled(),
+                                        Button.danger("remove", "Remove").asDisabled()
+                                )
+                        ).queueAfter(3, TimeUnit.MINUTES));
             }
             case "edit-pet" -> {
                 event.deferReply().queue();
@@ -145,7 +172,7 @@ public class SlashCommand extends Event {
             }
             case "assign-pet" -> {
                 // unicode for warning sign
-                String warning = "\u26A0";
+                String warning = "⚠";
                 event.deferReply(true).queue();
                 int pet_id = Objects.requireNonNull(event.getOption("id")).getAsInt();
                 boolean petExists = database.getPetRepo().existsById((long) pet_id);
@@ -212,7 +239,7 @@ public class SlashCommand extends Event {
                 }
                 event.deferReply().queue();
                 List<Pet> pets = database.getPetRepo().findAllById(petIds);
-                SelectMenu.Builder builder = SelectMenu.create("pet-stats");
+                StringSelectMenu.Builder builder = StringSelectMenu.create("pet-stats");
                 for (Pet pet : pets) {
                     String petName = pet.getName();
                     builder.addOption(petName, String.valueOf(pet.getId()), pet.getType());
@@ -223,32 +250,43 @@ public class SlashCommand extends Event {
                 int rank = database.getPetRepo().getRankById(petId);
                 pet.setRank(rank);
                 var petStats = Utils.getPetStats(pet, database.getConfig());
-                if (!isModerator && database.getConfig().getTrainingChannels().contains(event.getChannel().getIdLong())) {
-                    event.getHook().editOriginal(petStats).setComponents(
-                            ActionRow.of(selectionMenu),
-                            ActionRow.of(
-                                    Button.primary("train-pet", "Train")
-                            )
-                    ).queue(message -> {
-                        Database.MESSAGE_PET_STATUS_MAP_SELECTED.put(message.getIdLong(), pet.getId());
-                        message.editMessageComponents(
-                                ActionRow.of(selectionMenu.asDisabled()),
+                Request request = new Request.Builder()
+                        .url(petStats)
+                        .method("GET", null)
+                        .build();
+                try (Response response = Utils.client.newCall(request).execute()) {
+                    if (response.body() == null) {
+                        return;
+                    }
+                    byte[] bytes = response.body().bytes();
+                    FileUpload fileUpload = FileUpload.fromData(bytes, "stats.png");
+                    if (!isModerator && database.getConfig().getTrainingChannels().contains(event.getChannel().getIdLong())) {
+                        event.getHook().sendFiles(fileUpload).setComponents(
+                                ActionRow.of(selectionMenu),
                                 ActionRow.of(
-                                        Button.primary("train-pet", "Train").asDisabled()
+                                        Button.primary("train-pet", "Train")
                                 )
-                        ).queueAfter(10, TimeUnit.MINUTES, m -> Database.MESSAGE_PET_STATUS_MAP_SELECTED.remove(m.getIdLong()));
-                    });
-                } else {
-                    event.getHook()
-                            .editOriginal(petStats)
-                            .setComponents(ActionRow.of(selectionMenu))
-                            .queue(message -> {
-                                Database.MESSAGE_PET_STATUS_MAP_SELECTED.put(message.getIdLong(), pet.getId());
-                                message.editMessageComponents(
-                                        ActionRow.of(selectionMenu.asDisabled())
-                                ).queueAfter(10, TimeUnit.MINUTES, m -> Database.MESSAGE_PET_STATUS_MAP_SELECTED.remove(m.getIdLong()));
-                            });
-                }
+                        ).queue(message -> {
+                            Database.MESSAGE_PET_STATUS_MAP_SELECTED.put(message.getIdLong(), pet.getId());
+                            message.editMessageComponents(
+                                    ActionRow.of(selectionMenu.asDisabled()),
+                                    ActionRow.of(
+                                            Button.primary("train-pet", "Train").asDisabled()
+                                    )
+                            ).queueAfter(10, TimeUnit.MINUTES, m -> Database.MESSAGE_PET_STATUS_MAP_SELECTED.remove(m.getIdLong()));
+                        });
+                    } else {
+                        event.getHook()
+                                .sendFiles(fileUpload)
+                                .setComponents(ActionRow.of(selectionMenu))
+                                .queue(message -> {
+                                    Database.MESSAGE_PET_STATUS_MAP_SELECTED.put(message.getIdLong(), pet.getId());
+                                    message.editMessageComponents(
+                                            ActionRow.of(selectionMenu.asDisabled())
+                                    ).queueAfter(10, TimeUnit.MINUTES, m -> Database.MESSAGE_PET_STATUS_MAP_SELECTED.remove(m.getIdLong()));
+                                });
+                    }
+                } catch (IOException ignored) {}
             }
             case "start-training" -> {
                 if (!database.getConfig().getTrainingChannels().contains(event.getChannel().getIdLong())) {

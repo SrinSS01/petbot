@@ -14,7 +14,7 @@ import java.util.List;
 @Getter @Setter
 public class Config {
     private String token;
-    private String[] petSpecies;
+    private List<String> petSpecies;
     private long trainingCooldownInSeconds;
     private String statusBackground;
     private List<Long> trainingChannels;

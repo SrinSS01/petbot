@@ -29,6 +29,8 @@ public class Main implements CommandLineRunner {
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
     private final Database database;
 
+    private final GuildReady guildReady;
+
     @Override
     public void run(String... args) {
         String token = database.getConfig().getToken();
@@ -50,7 +52,7 @@ public class Main implements CommandLineRunner {
                 .setStatus(OnlineStatus.ONLINE)
                 .setActivity(Activity.playing("Selling pets :cat:"))
                 .addEventListeners(
-                        GuildReady.create(database),
+                        guildReady,
                         SlashCommand.create(database),
                         SelectionMenu.create(database),
                         ButtonPress.create(database),

@@ -3,22 +3,17 @@ package me.srin.petbot.events;
 import me.srin.petbot.database.Database;
 import me.srin.petbot.database.Pet;
 import me.srin.petbot.utils.Utils;
-import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
-import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.Modal;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
+import net.dv8tion.jda.api.interactions.modals.Modal;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.time.Instant;
-import java.util.Date;
 import java.util.Optional;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -52,7 +47,7 @@ public class ButtonPress extends Event {
             return;
         }
         switch (id) {
-            case "select" -> {
+            /*case "select" -> {
                 Database.PetLab petLab = getPetLab(event, member);
                 if (petLab == null) return;
                 Pet pet = petLab.getPet();
@@ -77,7 +72,7 @@ public class ButtonPress extends Event {
                                 )
                         ).queueAfter(3, TimeUnit.MINUTES));
                 petLab.getTask().cancel(true);
-            }
+            }*/
             case "remove" -> {
                 if (getPetLab(event, member) == null) return;
                 Database.MEMBER_PET_LAB_MAP.get(guild.getIdLong()).remove(member.getIdLong());

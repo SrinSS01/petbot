@@ -1,22 +1,27 @@
 package me.srin.petbot.events;
 
 import me.srin.petbot.database.Database;
+import me.srin.petbot.utils.Config;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.events.guild.GuildReadyEvent;
+import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
+import java.util.stream.Collectors;
+
+@Component
 public class GuildReady extends GuildEvent {
+    private final Config config;
     private static final Logger LOGGER = LoggerFactory.getLogger(GuildReady.class);
-    private GuildReady(Database database) {
+    private GuildReady(Database database, Config config) {
         super(database);
-    }
-
-    public static GuildReady create(Database database) {
-        return new GuildReady(database);
+        this.config = config;
     }
 
     @Override
@@ -24,7 +29,13 @@ public class GuildReady extends GuildEvent {
         Guild guild = event.getGuild();
         LOGGER.info("Guild ready: " + guild.getName());
         guild.updateCommands().addCommands(
-                Commands.slash("create-pet", "create a pet for the users"),
+                Commands.slash("create-pet", "create a pet for the users")
+                        .addOptions(
+                                new OptionData(OptionType.STRING, "type", "Pet type", true)
+                                        .addChoices(
+                                                config.getPetSpecies().stream().map(species -> new Command.Choice(species, species)).collect(Collectors.toList())
+                                        )
+                        ),
                 Commands.slash("edit-pet", "edit a pet")
                         .addOption(OptionType.INTEGER, "id", "pet id", true),
                 Commands.slash("assign-pet", "assign a pet to a user")

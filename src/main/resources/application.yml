@@ -1,6 +1,16 @@
 bot:
-  token: "token"
-  pet-species: [cat,dog,parrot,hamster,snake,dragon,fox,deer,squirrel,beast]
+  token: null
+  pet-species:
+    - cat
+    - dog
+    - parrot
+    - hamster
+    - snake
+    - dragon
+    - fox
+    - deer
+    - squirrel
+    - beast
   training-cooldown-in-seconds: 720
   status-background: null
   status-color: null
@@ -11,6 +21,8 @@ database:
   name: "database"
   user: "user"
   password: "password"
+
+#internals
 spring:
   datasource:
     hikari:

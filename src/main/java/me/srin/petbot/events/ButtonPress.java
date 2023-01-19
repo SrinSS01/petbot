@@ -135,14 +135,13 @@ public class ButtonPress extends Event {
                     pet.setCooldown(currentTime);
                     pet.setTrainingChannelId(event.getChannel().getIdLong());
                     ScheduledFuture<?> scheduledFuture = Utils.EXECUTOR.scheduleWithFixedDelay(
-                            () -> {
-                                pet.train();
-                                database.getPetRepo().save(pet);
-                            }, 0, periodInSeconds, TimeUnit.MILLISECONDS
+                            pet::train, 0, periodInSeconds, TimeUnit.MILLISECONDS
                     );
                     database.getPetRepo().save(pet);
+                    Database.PET_MAP.put(pet.getId(), pet);
                     event.replyFormat("pet started training in %s", event.getChannel().getAsMention()).setEphemeral(true).queue();
                     Utils.EXECUTOR.schedule(() -> {
+                        database.getPetRepo().save(pet);
                         scheduledFuture.cancel(true);
                     }, trainingCooldownInSeconds, TimeUnit.SECONDS);
                 }

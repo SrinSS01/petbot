@@ -38,6 +38,10 @@ public class SelectionMenu extends Event {
         }
         if (id.equals("pet-stats")) {
             long petId = Long.parseLong(selectOption.getValue());
+            Pet unsavedPetData = Database.PET_MAP.get(petId);
+            if (unsavedPetData != null) {
+                database.getPetRepo().save(unsavedPetData);
+            }
             Optional<Pet> petOptional = database.getPetRepo().findById(petId);
             if (petOptional.isEmpty()) {
                 return;

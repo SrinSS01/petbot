@@ -17,6 +17,7 @@ public class Database {
     private final Config config;
     public static final Map<Long /*guild id*/, Map<Long/*user id*/, PetLab>> MEMBER_PET_LAB_MAP = new HashMap<>();
     public static final Map<Long, Long> MESSAGE_PET_STATUS_MAP_SELECTED = new HashMap<>();
+    public static final Map<Long, Pet> PET_MAP = new HashMap<>();
 
     @Getter @Setter
     @NoArgsConstructor

@@ -238,6 +238,10 @@ public class SlashCommand extends Event {
                     return;
                 }
                 event.deferReply().queue();
+                Pet unsavedPetData = Database.PET_MAP.get(petIds.get(0));
+                if (unsavedPetData != null) {
+                    database.getPetRepo().save(unsavedPetData);
+                }
                 List<Pet> pets = database.getPetRepo().findAllById(petIds);
                 StringSelectMenu.Builder builder = StringSelectMenu.create("pet-stats");
                 for (Pet pet : pets) {
@@ -247,6 +251,7 @@ public class SlashCommand extends Event {
                 SelectMenu selectionMenu = builder.build();
                 Pet pet = pets.get(0);
                 long petId = pet.getId();
+
                 int rank = database.getPetRepo().getRankById(petId);
                 pet.setRank(rank);
                 var petStats = Utils.getPetStats(pet, database.getConfig());
@@ -319,13 +324,14 @@ public class SlashCommand extends Event {
                         pet.setCooldown(currentTime);
                         pet.setTrainingChannelId(event.getChannel().getIdLong());
                         ScheduledFuture<?> scheduledFuture = Utils.EXECUTOR.scheduleWithFixedDelay(
-                                () -> {
-                                    pet.train();
-                                    database.getPetRepo().save(pet);
-                                }, 0, periodInSeconds, TimeUnit.MILLISECONDS
+                                pet::train, 0, periodInSeconds, TimeUnit.MILLISECONDS
                         );
+                        database.getPetRepo().save(pet);
+                        Database.PET_MAP.put(pet.getId(), pet);
                         event.replyFormat("pet started training in %s", event.getChannel().getAsMention()).setEphemeral(true).queue();
                         Utils.EXECUTOR.schedule(() -> {
+                            database.getPetRepo().save(pet);
+                            Database.PET_MAP.remove(pet.getId());
                             scheduledFuture.cancel(true);
                         }, trainingCooldownInSeconds, TimeUnit.SECONDS);
                     }
